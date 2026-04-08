@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>اردو چیٹ بوٹ | Urdu AI Assistant</title>
+    <title>اردو چیٹ بوٹ | Urdu AI Assistant with Gemini</title>
     <style>
         * {
             margin: 0;
@@ -292,7 +292,7 @@
             اردو معاون
             <span>💬</span>
         </h1>
-        <div class="sub">آپ کا ذہین اردو چیٹ بوٹ | ہمیشہ مدد کے لیے حاضر</div>
+        <div class="sub">آپ کا ذہین اردو چیٹ بوٹ | Gemini AI سے چلنے والا</div>
     </div>
 
     <div class="messages-area" id="messagesArea">
@@ -315,6 +315,17 @@
 </div>
 
 <script>
+    // ============================================
+    // 🔑 GEMINI API KEY - GET YOUR FREE KEY FROM:
+    // https://aistudio.google.com/app/apikey
+    // ============================================
+    // IMPORTANT: Replace "YOUR_API_KEY_HERE" with your actual Gemini API key
+    // For GitHub Pages, leave this empty. For Vercel, you can use environment variables.
+    const GEMINI_API_KEY = "";  // <--- PASTE YOUR API KEY HERE IF USING VERCEL
+    
+    // Flag to check if Gemini is available
+    let useGemini = GEMINI_API_KEY !== "" && GEMINI_API_KEY !== "YOUR_API_KEY_HERE";
+    
     // -------------------  URDU INTELLIGENT CHATBOT CORE -------------------
     // A smart rule-based + contextual Urdu chatbot with advanced response patterns,
     // friendly personality, greetings, jokes, knowledge, and small talk.
@@ -349,6 +360,9 @@
         
         // 2. ASK ABOUT BOT (تعارف /你是谁 / معرفی)
         if (/(تم\s*کون\s*ہو|آپ\s*کون\s*ہیں|تعارف|کیا\s*ہو|اپنا\s*تعارف|بوٹ\s*کے\s*بارے)/.test(msg)) {
+            if (useGemini) {
+                return "میں ایک جدید اردو چیٹ بوٹ ہوں 🤖۔ مجھے حمزہ ملک نے بنایا ہے اور میں Gemini AI سے چلنے والا ہوں! میں آپ سے اردو میں بات کر سکتا ہوں، سوالوں کے جواب دے سکتا ہوں، مزاح سن سکتا ہوں اور آپ کی مدد کر سکتا ہوں۔ پوچھیے کچھ بھی!";
+            }
             return "میں ایک جدید اردو چیٹ بوٹ ہوں 🤖۔ مجھے حمزہ ملک نے بنایا ہے۔ میں آپ سے اردو میں بات کر سکتا ہوں، سوالوں کے جواب دے سکتا ہوں، مزاح سن سکتا ہوں اور آپ کی مدد کر سکتا ہوں۔ پوچھیے کچھ بھی!";
         }
         
@@ -451,6 +465,76 @@
         return defaultResponses[Math.floor(Math.random() * defaultResponses.length)];
     }
     
+    // ============================================
+    // 🤖 GEMINI API RESPONSE (NEW - Added alongside your existing code)
+    // ============================================
+    async function getGeminiResponse(userMessage) {
+        if (!useGemini) {
+            return null;
+        }
+        
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`;
+        
+        try {
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: { 
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    contents: [{
+                        parts: [{ 
+                            text: userMessage 
+                        }]
+                    }],
+                    generationConfig: {
+                        temperature: 0.7,
+                        maxOutputTokens: 500,
+                        topP: 0.95
+                    }
+                })
+            });
+            
+            const data = await response.json();
+            
+            if (data.error) {
+                console.error('API Error:', data.error);
+                return null;
+            }
+            
+            if (data.candidates && data.candidates[0] && 
+                data.candidates[0].content && 
+                data.candidates[0].content.parts && 
+                data.candidates[0].content.parts[0]) {
+                return data.candidates[0].content.parts[0].text;
+            }
+            
+            return null;
+            
+        } catch (error) {
+            console.error('Network Error:', error);
+            return null;
+        }
+    }
+    
+    // ============================================
+    // 🧠 SMART RESPONSE FUNCTION (NEW - Tries Gemini first, then falls back to your bot)
+    // ============================================
+    async function getSmartResponse(userMessage) {
+        if (useGemini) {
+            try {
+                const geminiReply = await getGeminiResponse(userMessage);
+                if (geminiReply) {
+                    return geminiReply;
+                }
+            } catch (e) {
+                console.log("Gemini failed, using fallback");
+            }
+        }
+        // Fallback to your excellent rule-based responses
+        return getBotReply(userMessage);
+    }
+    
     // ---------------- UI & Chat Logic ----------------
     const messagesArea = document.getElementById('messagesArea');
     const userInput = document.getElementById('userInput');
@@ -510,12 +594,15 @@
         if (indicator) indicator.remove();
     }
     
-    // core bot response with delay & typing
+    // core bot response with delay & typing (UPDATED to use smart response)
     async function sendBotResponse(userMessage) {
         showTypingIndicator();
         // simulate thinking (300-700ms)
         await new Promise(resolve => setTimeout(resolve, 500 + Math.random() * 400));
-        const replyText = getBotReply(userMessage);
+        
+        // Use smart response (Gemini AI first, then fallback to your bot)
+        const replyText = await getSmartResponse(userMessage);
+        
         removeTypingIndicator();
         addMessageToUI(replyText, 'bot');
         conversationHistory.push({ role: 'bot', content: replyText });
@@ -557,7 +644,12 @@
     
     // initial welcome message on load (after DOM)
     window.addEventListener('DOMContentLoaded', () => {
-        const welcomeMsg = "السلام علیکم! 🤖 میں اردو معاون ہوں۔ آپ مجھ سے اردو میں باتیں کر سکتے ہیں، سوالات پوچھ سکتے ہیں، یا کوئی مشورہ لے سکتے ہیں۔ کیسے مدد کروں؟";
+        let welcomeMsg = "السلام علیکم! 🤖 میں اردو معاون ہوں۔ آپ مجھ سے اردو میں باتیں کر سکتے ہیں، سوالات پوچھ سکتے ہیں، یا کوئی مشورہ لے سکتے ہیں۔ کیسے مدد کروں؟";
+        
+        if (useGemini) {
+            welcomeMsg = "السلام علیکم! 🤖 میں اردو معاون ہوں اور **Gemini AI** سے چلنے والا ہوں! 🚀\n\nاب میں آپ کے کسی بھی سوال کا ذہین جواب دے سکتا ہوں۔ پوچھیے کچھ بھی اردو میں!";
+        }
+        
         addMessageToUI(welcomeMsg, 'bot');
         conversationHistory.push({ role: 'bot', content: welcomeMsg });
     });
