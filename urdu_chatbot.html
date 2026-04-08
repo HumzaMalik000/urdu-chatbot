@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>اردو چیٹ بوٹ | Urdu AI Assistant</title>
+    <title>اردو چیٹ بوٹ | Urdu AI Assistant with Groq</title>
     <style>
         * {
             margin: 0;
@@ -65,35 +65,6 @@
             opacity: 0.85;
             margin-top: 6px;
             font-family: monospace;
-        }
-
-        /* ✅ NEW: Status Bar */
-        .status-bar {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 6px;
-            margin-top: 8px;
-            font-size: 0.75rem;
-            opacity: 0.9;
-        }
-
-        .status-dot {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            background: #4caf50;
-            animation: blink 2s infinite;
-        }
-
-        .status-dot.error {
-            background: #f44336;
-            animation: none;
-        }
-
-        @keyframes blink {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.3; }
         }
 
         /* Messages Area */
@@ -162,13 +133,6 @@
             color: #1e2a2e;
             border-bottom-left-radius: 6px;
             border-right: 3px solid #cfb16e;
-        }
-
-        /* ✅ NEW: Error bubble style */
-        .error-bubble {
-            background: #fdecea;
-            color: #c0392b;
-            border-right: 3px solid #e74c3c;
         }
 
         .message-time {
@@ -245,12 +209,6 @@
             border: 1px solid #dba53f;
         }
 
-        /* ✅ NEW: Disabled state while waiting */
-        .input-area input:disabled {
-            background: #f0ece4;
-            color: #999;
-        }
-
         .input-area button {
             background: #2c5e3a;
             border: none;
@@ -267,16 +225,9 @@
             box-shadow: 0 4px 8px rgba(0,0,0,0.1);
         }
 
-        .input-area button:hover:not(:disabled) {
+        .input-area button:hover {
             background: #1f452c;
             transform: scale(0.96);
-        }
-
-        /* ✅ NEW: Disabled button while waiting */
-        .input-area button:disabled {
-            background: #8aab92;
-            cursor: not-allowed;
-            transform: none;
         }
 
         /* Quick Suggestions */
@@ -341,12 +292,7 @@
             اردو معاون
             <span>💬</span>
         </h1>
-        <div class="sub">آپ کا ذہین اردو چیٹ بوٹ | ہمیشہ مدد کے لیے حاضر</div>
-        <!-- ✅ NEW: Live Gemini status indicator -->
-        <div class="status-bar">
-            <div class="status-dot" id="statusDot"></div>
-            <span id="statusText">Gemini AI سے جڑ رہے ہیں...</span>
-        </div>
+        <div class="sub">آپ کا ذہین اردو چیٹ بوٹ | Groq AI سے چلنے والا</div>
     </div>
 
     <div class="messages-area" id="messagesArea">
@@ -369,23 +315,15 @@
 </div>
 
 <script>
-    // -------------------  URDU INTELLIGENT CHATBOT CORE -------------------
-    // Powered by Google Gemini AI via a secure Vercel serverless function.
-    // The API key lives only in Vercel environment variables — never here.
-
-    // -------------------- UI ELEMENTS --------------------
-    const messagesArea = document.getElementById('messagesArea');
-    const userInput    = document.getElementById('userInput');
-    const sendBtn      = document.getElementById('sendBtn');
-    const statusDot    = document.getElementById('statusDot');
-    const statusText   = document.getElementById('statusText');
-
-    // Conversation history for Gemini context (last 10 messages)
-    let conversationHistory = [];
-    let isWaiting = false;
-
-    // -------------------- HELPERS --------------------
-
+    // ============================================
+    // 🔑 API CONFIGURATION - Using Groq via Vercel Backend
+    // ============================================
+    // No API key needed here - it's handled by api/chat.js on the server
+    let useGroqAPI = true;  // Set to true to use Groq AI, false to use rule-based responses
+    
+    // -------------------  URDU INTELLIGENT CHATBOT CORE (FALLBACK) -------------------
+    // This rule-based bot works when Groq API is disabled or fails
+    
     // Helper: get current time in HH:MM AM/PM format
     function getCurrentTime() {
         const now = new Date();
@@ -397,51 +335,212 @@
         return `${hours}:${minutes} ${ampm}`;
     }
 
+    // Bot response generator (Urdu NLP inspired) - FALLBACK when Groq is not available
+    function getBotReply(userMsg) {
+        let msg = userMsg.trim().toLowerCase();
+        
+        // Remove extra spaces and normalize common urdu characters
+        msg = msg.replace(/[؟؟,؟]/g, '?').replace(/[!۔]/g, '!');
+        
+        // 1. GREETINGS & SALAM
+        if (/(السلام\s*علیکم|وعلیکم\s*السلام|سلام|ہیلو|ہائے|اداب)/.test(msg)) {
+            const salamResponses = [
+                "وعلیکم السلام! 🌸 آپ کا استقبال ہے۔ میں آپ کی کیسے مدد کر سکتا ہوں؟",
+                "السلام علیکم! خوش آمدید! کیا آپ کو کسی چیز کی ضرورت ہے؟",
+                "وعلیکم السلام و رحمتہ اللہ! بہت عمدہ، مجھے آپ سے بات کر کے خوشی ہوئی۔"
+            ];
+            return salamResponses[Math.floor(Math.random() * salamResponses.length)];
+        }
+        
+        // 2. ASK ABOUT BOT (تعارف)
+        if (/(تم\s*کون\s*ہو|آپ\s*کون\s*ہیں|تعارف|کیا\s*ہو|اپنا\s*تعارف|بوٹ\s*کے\s*بارے)/.test(msg)) {
+            return "میں ایک جدید اردو چیٹ بوٹ ہوں 🤖۔ مجھے حمزہ ملک نے بنایا ہے۔ میں آپ سے اردو میں بات کر سکتا ہوں، سوالوں کے جواب دے سکتا ہوں، مزاح سن سکتا ہوں اور آپ کی مدد کر سکتا ہوں۔ پوچھیے کچھ بھی!";
+        }
+        
+        // 3. HOW ARE YOU?
+        if (/(کیسے\s*ہو|کیسی\s*ہو|کیا\s*حال\s*ہے|آپ\s*کیسے|کیا\s*حال|طبیعت|khairyat)/.test(msg)) {
+            const howResponses = [
+                "میں ٹھیک ہوں، اللہ کا شکر ہے! آپ سنائیں، کیسی گزر رہی ہے؟ 😊",
+                "بہت اچھا، آپ کی دعا سے! آپ کیسے ہیں؟ کچھ خاص پوچھنا چاہیں گے؟",
+                "الحمدللہ بالکل ٹھیک! آپ کی مسکراہٹ سے یہ دن اور بہتر ہو گیا۔"
+            ];
+            return howResponses[Math.floor(Math.random() * howResponses.length)];
+        }
+        
+        // 4. WEATHER based (اردو میں موسم)
+        if (/(موسم|بارش|گرمی|سردی|آب و ہوا|temperature|ٹمپریچر)/.test(msg)) {
+            return "میرے پاس براہِ راست ڈیٹا تو نہیں، لیکن عام طور پر اگر آپ کراچی، لاہور یا اسلام آباد میں ہیں تو موسم خوشگوار رہتا ہے! 🌦️ کیا آپ چاہیں گے میں موسم کے بارے میں مشورہ دوں؟ بہتر ہے کہ آپ موسم کی ایپ دیکھیں۔";
+        }
+        
+        // 5. JOKE / LAUGHTER (مزاح / لطیفہ)
+        if (/(مزاح|لطیفہ|ہنسی\s*مذاق|funny|ہنسائیں|کوئی\s*بات\s*سناؤ)/.test(msg)) {
+            const jokes = [
+                "ایک بار ایک مرغی نے انڈہ دیا تو دوسری مرغی بولی: 'واقعی؟ مجھے لگتا تھا تم تو مرغ ہو!' 😂",
+                "شاگرد: استاد جی، کیا میں نیند میں چلتا ہوں؟ استاد: نہیں بیٹا، تم تو جاگتے ہوئے سوئے رہتے ہو۔ 😆",
+                "پتہ ہے اردو کا ایک لفظ 'نہیں' اتنا مضبوط ہے کہ 'ہاں' بھی اس کے سامنے ہار جاتی ہے۔ ٹھہا؟ 😜",
+                "میں نے اپنے دوست سے پوچھا: 'تم اتنی جلدی میں کیوں ہو؟' بولا: 'میرے پاس ٹائم مشین ہے، میں کل کے لیے لیٹ ہوں!'"
+            ];
+            return jokes[Math.floor(Math.random() * jokes.length)] + " 😄 امید ہے آپ ہنسے!";
+        }
+        
+        // 6. THANKS & GRATITUDE
+        if (/(شکریہ|شکریا|تھینکس|بہت\s*بہت\s*شکریہ|جزاک\s*اللہ)/.test(msg)) {
+            return "آپ کا بہت شکریہ! 🤗 یہ میری خوش قسمتی ہے کہ میں آپ کی مدد کر سکا۔ کسی اور چیز کے لیے میں حاضر ہوں۔";
+        }
+        
+        // 7. FAREWELL / BYE
+        if (/(الوداع|خدا\s*حافظ|پھر\s*ملتے\s*ہیں|بائے|چلتا\s*ہوں|معاف\s*کیجیے\s*میں\s*جارہا)/.test(msg)) {
+            return "الوداع! اللہ حافظ، خوش رہیں! 👋 آپ کا انتظار رہے گا۔ دوبارہ تشریف لائیے گا۔";
+        }
+        
+        // 8. LOVE / ROMANTIC or emotional
+        if (/(محبت|پیار|عشق|love|تم\s*سے\s*پیار|دل)/.test(msg)) {
+            return "اوہو! 💖 محبت ایک خوبصورت احساس ہے۔ میں ایک بوٹ ہوں لیکن آپ کے جذبات کی قدر کرتا ہوں۔ کیا آپ کسی خاص کے بارے میں بات کرنا چاہیں گے؟";
+        }
+        
+        // 9. WHAT CAN YOU DO? / HELP
+        if (/(کیا\s*کر\s*سکتے\s*ہو|کیا\s*کام\s*ہے|مدد\s*کرو|help|فیچرز)/.test(msg)) {
+            return "میں بہت کچھ کر سکتا ہوں: ✅ سلام اور عمومی باتیں ✅ سوالوں کے جوابات ✅ لطیفے، مشورے ✅ تعارف، موسم کی بنیادی معلومات ✅ آپ کی دلچسپی کی باتیں۔ بس پوچھیے، میں حاضر ہوں!";
+        }
+        
+        // 10. TIME / DATE related
+        if (/(وقت|ٹائم|گھنٹہ|تاریخ|دن|کون\s*سا\s*دن|کل\s*کی\s*تاریخ)/.test(msg)) {
+            const now = new Date();
+            const dateStr = now.toLocaleDateString('ur-PK', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+            const timeStr = getCurrentTime();
+            return `آج ${dateStr} ہے اور وقت ${timeStr} بج رہے ہیں۔ ⏰ کیا مزید کچھ پوچھنا چاہیں گے؟`;
+        }
+        
+        // 11. NAME / ASK MY NAME
+        if (/(میرا\s*نام|میرا\s*نام\s*کیا\s*ہے|آپ\s*میرا\s*نام\s*جانتے\s*ہیں)/.test(msg)) {
+            return "آپ نے ابھی اپنا نام نہیں بتایا، لیکن اگر آپ بتائیں تو میں اگلی بار آپ کو نام سے یاد رکھوں گا! آپ کا نام کیا ہے؟ (اس سیشن میں میں آپ کو '*صارف*' کہہ سکتا ہوں)۔";
+        }
+        
+        // 12. GENERAL KNOWLEDGE / FAQ: پاکستان کے بارے میں
+        if (/(پاکستان|اسلام\s*آباد|کراچی|قائد\s*اعظم|علامہ\s*اقبال)/.test(msg)) {
+            return "پاکستان خوبصورت ملک ہے! 🇵🇰 قائد اعظم محمد علی جناح، علامہ اقبال جیسی عظیم شخصیات ہیں۔ کیا آپ کو پاکستان کے کسی خاص شہر یا ثقافت کے بارے میں جاننا ہے؟";
+        }
+        
+        // 13. CRICKET / SPORTS
+        if (/(کرکٹ|کھیل|پاکستان\s*کرکٹ|بابر\s*اعظم|شاہین|عالمی\s*کپ)/.test(msg)) {
+            return "واہ! کرکٹ کا ذکر آیا 🏏۔ پاکستان کی کرکٹ ٹیم بہترین صلاحیت رکھتی ہے۔ بابر اعظم بہترین بلے باز ہیں۔ کیا آپ کوئی میچ دیکھ رہے تھے حال ہی میں؟";
+        }
+        
+        // 14. EMOTIONS / SAD / ANGRY
+        if (/(اداس|پریشان|مایوس|رونا|بہت\s*برا)/.test(msg)) {
+            return "مجھے افسوس ہے کہ آپ اداس ہیں 😔۔ یاد رکھیے، مشکل وقت بھی گزر جاتا ہے۔ کیا آپ کچھ شیئر کرنا چاہیں گے؟ میں صرف ایک بوٹ ہوں لیکن سن سکتا ہوں۔";
+        }
+        
+        // 15. FUTURE / AI / TECH
+        if (/(اے\s*آئی|مشین\s*لرننگ|ٹیکنالوجی|روبوٹ|چیٹ\s*جی\s*پی\s*ٹی)/.test(msg)) {
+            return "مصنوعی ذہانت (AI) کا مستقبل روشن ہے! میں ایک چیٹ بوٹ ہوں جو اصولوں پر کام کرتا ہوں، لیکن بہت جلد ہم اور بہتر ہو جائیں گے۔ کیا آپ کو AI میں دلچسپی ہے؟";
+        }
+        
+        // 16. POEM / SHAYARI
+        if (/(شاعری|غزل|نظم|اشعار|کوئی\s*شعر\s*سناؤ)/.test(msg)) {
+            const sher = [
+                "دل سے جو بات نکلتی ہے اثر رکھتی ہے،\nپر نہیں، زورِ دعا کا کوئی پہلو ہے ابھی۔ ✨",
+                "ہزاروں خواہشیں ایسی کہ ہر خواہش پہ دم نکلے،\nبہت نکلے میرے ارمان لیکن پھر بھی کم نکلے۔",
+                "؎ تجھ سے ہے حسن کا تصور تجھ سے ہے حسن کا آغاز،\nتو ہے جمالِ کائنات، تو ہے جمالِ کائنات"
+            ];
+            return sher[Math.floor(Math.random() * sher.length)] + "\n\nخوبصورت کلام پسند آیا؟ مجھے اور سنانے کا کہیں!";
+        }
+        
+        // 17. DEFAULT / FALLBACK - intelligent & kind
+        const defaultResponses = [
+            "واقعی؟ دلچسپ بات ہے! 🤔 کیا آپ مزید وضاحت کر سکتے ہیں؟ میں اردو میں جواب دینے کی پوری کوشش کروں گا۔",
+            "بہت اچھا سوال! میں اس بارے میں مزید معلومات حاصل کر رہا ہوں۔ براہ کرم دوسرا سوال پوچھیے یا اسی بارے کچھ اور بتائیے۔",
+            "آپ نے کچھ منفرد پوچھا، میری علمی معاونت اس وقت محدود ہے لیکن میں سیکھ رہا ہوں۔ کیا آپ مجھے کچھ سکھا سکتے ہیں؟",
+            "میں سمجھ گیا۔ کیا آپ اسے آسان اردو میں دہرا سکتے ہیں؟ یا کسی اور موضوع پر بات کرتے ہیں جیسے موسم، مزاح، یا سلام۔"
+        ];
+        return defaultResponses[Math.floor(Math.random() * defaultResponses.length)];
+    }
+    
+    // ============================================
+    // 🤖 GROQ API CALL (via Vercel backend)
+    // ============================================
+    async function getGroqResponse(userMessage) {
+        try {
+            const response = await fetch('/api/chat', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ 
+                    message: userMessage,
+                    history: conversationHistory 
+                })
+            });
+            
+            const data = await response.json();
+            
+            if (data.error) {
+                console.error('API Error:', data.error);
+                return null;
+            }
+            
+            return data.reply;
+            
+        } catch (error) {
+            console.error('Network Error:', error);
+            return null;
+        }
+    }
+    
+    // ============================================
+    // 🧠 SMART RESPONSE FUNCTION (Tries Groq first, then falls back to rule-based)
+    // ============================================
+    async function getSmartResponse(userMessage) {
+        if (useGroqAPI) {
+            try {
+                const groqReply = await getGroqResponse(userMessage);
+                if (groqReply) {
+                    return groqReply;
+                }
+            } catch (e) {
+                console.log("Groq API failed, using fallback");
+            }
+        }
+        // Fallback to rule-based responses
+        return getBotReply(userMessage);
+    }
+    
+    // ---------------- UI & Chat Logic ----------------
+    const messagesArea = document.getElementById('messagesArea');
+    const userInput = document.getElementById('userInput');
+    const sendBtn = document.getElementById('sendBtn');
+    
+    // message history array (for conversation context)
+    let conversationHistory = [];
+    
     // Function to format timestamp
     function getFormattedTime() {
         const now = new Date();
         return now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     }
-
-    // ✅ NEW: Update the status bar in the header
-    function setStatus(online, text) {
-        statusDot.className = 'status-dot' + (online ? '' : ' error');
-        statusText.innerText = text;
-    }
-
-    // ✅ NEW: Enable / disable input & button while waiting for Gemini
-    function setInputEnabled(enabled) {
-        userInput.disabled = !enabled;
-        sendBtn.disabled   = !enabled;
-        isWaiting          = !enabled;
-    }
-
-    // -------------------- UI: ADD MESSAGE --------------------
-
+    
     // Add message to UI
-    function addMessageToUI(text, sender, isError = false) {
+    function addMessageToUI(text, sender) {
         const messageDiv = document.createElement('div');
         messageDiv.className = `message ${sender === 'user' ? 'user-message' : 'bot-message'}`;
-
+        
         const bubble = document.createElement('div');
-        // ✅ NEW: isError adds error-bubble class for red error styling
-        bubble.className = `bubble ${sender === 'user' ? 'user-bubble' : isError ? 'bot-bubble error-bubble' : 'bot-bubble'}`;
+        bubble.className = `bubble ${sender === 'user' ? 'user-bubble' : 'bot-bubble'}`;
         bubble.innerText = text;
-
+        
         const timeSpan = document.createElement('div');
         timeSpan.className = 'message-time';
         timeSpan.innerText = getFormattedTime();
-
+        
         messageDiv.appendChild(bubble);
         messageDiv.appendChild(timeSpan);
         messagesArea.appendChild(messageDiv);
-
+        
         // Auto-scroll to bottom
         messagesArea.scrollTop = messagesArea.scrollHeight;
     }
-
-    // -------------------- TYPING INDICATOR --------------------
-
+    
+    // Typing indicator
     function showTypingIndicator() {
         removeTypingIndicator();
         const typingDiv = document.createElement('div');
@@ -458,107 +557,70 @@
         messagesArea.appendChild(typingDiv);
         messagesArea.scrollTop = messagesArea.scrollHeight;
     }
-
+    
     function removeTypingIndicator() {
         const indicator = document.getElementById('typingIndicator');
         if (indicator) indicator.remove();
     }
-
-    // -------------------- ✅ GEMINI API CALL --------------------
-    // Calls /api/chat — your Vercel serverless function.
-    // The real Gemini API key is stored securely in Vercel env variables.
-    // It is NEVER written in this HTML file.
-    async function callGeminiAPI(userMessage) {
-        const response = await fetch('/api/chat', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                message: userMessage,
-                history: conversationHistory.slice(-10) // send last 10 msgs for context
-            })
-        });
-
-        const data = await response.json();
-
-        if (!response.ok) {
-            throw new Error(data.error || 'سرور میں خرابی آئی');
-        }
-
-        return data.reply;
+    
+    // core bot response with delay & typing (UPDATED to use smart response)
+    async function sendBotResponse(userMessage) {
+        showTypingIndicator();
+        // simulate thinking (300-700ms)
+        await new Promise(resolve => setTimeout(resolve, 500 + Math.random() * 400));
+        
+        // Use smart response (Groq AI first, then fallback to rule-based)
+        const replyText = await getSmartResponse(userMessage);
+        
+        removeTypingIndicator();
+        addMessageToUI(replyText, 'bot');
+        conversationHistory.push({ role: 'bot', content: replyText });
     }
-
-    // -------------------- SEND MESSAGE --------------------
-
-    // Handle user message — now uses Gemini AI instead of rule-based replies
+    
+    // handle user message
     async function handleUserMessage() {
-        const message = userInput.value.trim();
-        if (message === '' || isWaiting) return;
-
-        // Clear input and disable while waiting
-        userInput.value = '';
-        setInputEnabled(false);
-
-        // Show user message in UI
+        let message = userInput.value.trim();
+        if (message === "") return;
+        
+        // Clear input
+        userInput.value = "";
+        // Add user message to UI
         addMessageToUI(message, 'user');
         conversationHistory.push({ role: 'user', content: message });
-
-        // Show typing indicator and update status
-        showTypingIndicator();
-        setStatus(true, 'Gemini AI جواب دے رہا ہے...');
-
-        try {
-            // ✅ Call Gemini via secure server route
-            const reply = await callGeminiAPI(message);
-            removeTypingIndicator();
-            addMessageToUI(reply, 'bot');
-            conversationHistory.push({ role: 'bot', content: reply });
-            setStatus(true, 'Gemini AI فعال ہے ✓');
-        } catch (error) {
-            removeTypingIndicator();
-            console.error('Error:', error);
-            // ✅ Show Urdu error message with red styling
-            addMessageToUI(
-                'معذرت! جواب حاصل کرنے میں مسئلہ آیا: ' + error.message + ' — دوبارہ کوشش کریں۔',
-                'bot',
-                true
-            );
-            setStatus(false, 'خرابی — دوبارہ کوشش کریں');
-        } finally {
-            setInputEnabled(true);
-            userInput.focus();
-        }
+        
+        // get bot response asynchronously
+        await sendBotResponse(message);
     }
-
-    // -------------------- EVENT LISTENERS --------------------
-
+    
+    // event listeners
     sendBtn.addEventListener('click', handleUserMessage);
-
     userInput.addEventListener('keypress', (e) => {
         if (e.key === 'Enter') {
             e.preventDefault();
             handleUserMessage();
         }
     });
-
+    
     // Quick suggestion chips
     const chips = document.querySelectorAll('.suggestion-chip');
     chips.forEach(chip => {
         chip.addEventListener('click', (e) => {
-            if (isWaiting) return;
             const suggestedText = chip.getAttribute('data-text');
             userInput.value = suggestedText;
             handleUserMessage();
         });
     });
-
-    // -------------------- WELCOME MESSAGE --------------------
-
-    // Initial welcome message on load (after DOM)
+    
+    // initial welcome message on load (after DOM)
     window.addEventListener('DOMContentLoaded', () => {
-        const welcomeMsg = "السلام علیکم! 🤖 میں اردو معاون ہوں، Gemini AI سے چلنے والا ذہین چیٹ بوٹ۔ آپ مجھ سے اردو میں کچھ بھی پوچھ سکتے ہیں — سوالات، مشورے، مزاح، شاعری، یا کوئی بھی معلومات۔ کیسے مدد کروں؟ 😊";
+        let welcomeMsg = "السلام علیکم! 🤖 میں اردو معاون ہوں۔ آپ مجھ سے اردو میں باتیں کر سکتے ہیں، سوالات پوچھ سکتے ہیں، یا کوئی مشورہ لے سکتے ہیں۔ کیسے مدد کروں؟";
+        
+        if (useGroqAPI) {
+            welcomeMsg = "السلام علیکم! 🤖 میں اردو معاون ہوں اور **Groq AI** سے چلنے والا ہوں! 🚀\n\nاب میں آپ کے کسی بھی سوال کا ذہین جواب دے سکتا ہوں۔ پوچھیے کچھ بھی اردو میں!";
+        }
+        
         addMessageToUI(welcomeMsg, 'bot');
         conversationHistory.push({ role: 'bot', content: welcomeMsg });
-        setStatus(true, 'Gemini AI فعال ہے ✓');
     });
 </script>
 </body>
