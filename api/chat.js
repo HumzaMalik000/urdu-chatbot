@@ -10,43 +10,20 @@ export default async function handler(req, res) {
         return res.status(400).json({ error: 'Message is required' });
     }
 
-    // ✅ API key is read from Vercel environment variables — never exposed to browser
-    const apiKey = process.env.GEMINI_API_KEY;
+    // Get Groq API key from Vercel environment variables
+    const apiKey = process.env.GROQ_API_KEY;
 
     if (!apiKey) {
         return res.status(500).json({ error: 'API key not configured on server' });
     }
 
-    // Build conversation history for Gemini (multi-turn context)
-    const contents = [];
+    // Build conversation history for Groq
+    const messages = [];
 
-    if (history && Array.isArray(history)) {
-        history.forEach(msg => {
-            contents.push({
-                role: msg.role === 'user' ? 'user' : 'model',
-                parts: [{ text: msg.content }]
-            });
-        });
-    }
-
-    // Add the latest user message
-    contents.push({
-        role: 'user',
-        parts: [{ text: message }]
-    });
-
-    try {
-        // ✅ FIXED: Using correct model name - gemini-2.0-flash
-        const response = await fetch(
-            `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
-            {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    contents: contents,
-                    systemInstruction: {
-                        parts: [{
-                            text: `آپ ایک ذہین اردو چیٹ بوٹ ہیں جس کا نام "اردو معاون" ہے۔ آپ کو حمزہ ملک نے بنایا ہے۔
+    // System instruction (bot's personality in Urdu)
+    messages.push({
+        role: 'system',
+        content: `آپ ایک ذہین اردو چیٹ بوٹ ہیں جس کا نام "اردو معاون" ہے۔ آپ کو حمزہ ملک نے بنایا ہے۔
 
 قوانین:
 - ہمیشہ اردو میں جواب دیں۔ اگر صارف انگریزی میں پوچھے تب بھی اردو میں جواب دیں۔
@@ -55,12 +32,39 @@ export default async function handler(req, res) {
 - اسلامی آداب کا خیال رکھیں۔
 - اگر کوئی بات نامناسب ہو تو شائستگی سے انکار کریں۔
 - موسم، لطیفے، شاعری، عمومی علم، مشورے — سب اردو میں دیں۔`
-                        }]
-                    },
-                    generationConfig: {
-                        temperature: 0.7,
-                        maxOutputTokens: 1024,
-                    }
+    });
+
+    // Add conversation history
+    if (history && Array.isArray(history)) {
+        history.forEach(msg => {
+            messages.push({
+                role: msg.role === 'user' ? 'user' : 'assistant',
+                content: msg.content
+            });
+        });
+    }
+
+    // Add the latest user message
+    messages.push({
+        role: 'user',
+        content: message
+    });
+
+    try {
+        const response = await fetch(
+            'https://api.groq.com/openai/v1/chat/completions',
+            {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${apiKey}`
+                },
+                body: JSON.stringify({
+                    model: 'llama-3.3-70b-versatile',  // Best for Urdu
+                    messages: messages,
+                    temperature: 0.7,
+                    max_tokens: 1024,
+                    top_p: 0.95
                 })
             }
         );
@@ -68,16 +72,16 @@ export default async function handler(req, res) {
         const data = await response.json();
 
         if (!response.ok) {
-            console.error('Gemini API error:', data);
+            console.error('Groq API error:', data);
             return res.status(response.status).json({
-                error: data.error?.message || 'Gemini API error'
+                error: data.error?.message || 'Groq API error'
             });
         }
 
-        const reply = data.candidates?.[0]?.content?.parts?.[0]?.text;
+        const reply = data.choices?.[0]?.message?.content;
 
         if (!reply) {
-            return res.status(500).json({ error: 'No response received from Gemini' });
+            return res.status(500).json({ error: 'No response received from Groq' });
         }
 
         res.status(200).json({ reply });
